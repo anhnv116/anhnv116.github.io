@@ -1,0 +1,360 @@
+<html>
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css?family=Autour+One|Open+Sans&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style2.css" />
+  </head>
+  <body>
+    <div id="logIn">
+      <!-- <div class="bg">
+        <img src="images2/background1.jpg" />
+        <img src="images2/background2.jpg" />
+        <img src="images2/background3.jpg" />
+      </div> -->
+
+      <div class="overlay"></div>
+      <div class="input-block">
+        <h1>FPT HAPPY FARM</h1>
+        <label for="userName">Enter Your Name</label>
+        <input type="text" id="userName" placeholder="Nguyen Van Anh" />
+        <button id="playGame">Play Now!</button>
+      </div>
+    </div>
+    <div class="block sidebar">
+      <h1>Happy Farm</h1>
+      <div class="tools">
+        <div id="treePanel" class="tree-panel"></div>
+        <div class="tool-panel">
+          <img src="./images2/froggy.svg" id="plant" />
+          <div id="thuhoach">
+            <img src="./images2/giothuhoach.png" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="block board">
+      <div id="gardenBlock" class="garden-block"></div>
+    </div>
+    <div class="block profile">
+      <div class="name">
+        <span id="name">
+          Van Anh
+        </span>
+      </div>
+      <div class="chain"></div>
+      <div class="scoreBoard">
+        <span>
+          <strong>Score <br /><span id="score">0</span></strong>
+        </span>
+      </div>
+    </div>
+
+    <script>
+      function sound(src, loop) {
+        this.sound = document.createElement("audio");
+        this.sound.src = src;
+        this.sound.setAttribute("preload", "auto");
+        this.sound.setAttribute("controls", "none");
+        if (loop) {
+          this.sound.setAttribute("loop", "loop");
+        }
+        this.sound.style.display = "none";
+        document.body.appendChild(this.sound);
+        this.play = function() {
+          this.sound.play();
+        };
+        this.stop = function() {
+          this.sound.pause();
+        };
+      }
+    </script>
+
+    <script>
+      function Player(name, score) {
+        this.name = name;
+        this.score = score;
+        document.getElementById("name").innerText = this.name;
+        document.getElementById("score").innerText = this.score;
+
+        this.setName = function(name) {
+          this.name = name;
+          document.getElementById("name").innerText = this.name;
+        };
+
+        this.tangDiem = function(score) {
+          this.score = this.score + score;
+          document.getElementById("score").innerText = this.score;
+        };
+      }
+
+      const player = new Player("Demo User", 5);
+      const logIn = document.getElementById("logIn");
+      document.getElementById("playGame").addEventListener("click", function() {
+        const userName = document.getElementById("userName").value;
+        player.setName(userName);
+        logIn.style.display = "none";
+      });
+
+      function Tree(id, level) {
+        this.id = id;
+        this.block = document.createElement("span");
+
+        this.level = level;
+
+        this.getPrice = function() {
+          switch (this.id) {
+            case 0:
+              return 2;
+            case 1:
+              return 3;
+            case 2:
+              return 5;
+            case 3:
+              return 7;
+            case 4:
+              return 9;
+            default:
+              return 0;
+          }
+        };
+
+        this.canBuy = function(score) {
+          return score >= this.getPrice();
+        };
+
+        // vẽ cây vào mảnh đất
+        this.draw = function(plot) {
+          this.block.id = "tree_" + this.id;
+          this.block.innerHTML = "";
+
+          const treeImg = document.createElement("img");
+          treeImg.src = "./images2/tree_" + this.id + "_" + this.level + ".png";
+          this.block.appendChild(treeImg);
+
+          const treePrice = document.createElement("span");
+          treePrice.innerText = this.getPrice();
+          this.block.appendChild(treePrice);
+
+          plot.appendChild(this.block);
+        };
+
+        this.lock = function() {
+          this.block.classList.add("lock");
+        };
+
+        this.unlock = function() {
+          this.block.classList.remove("lock");
+        };
+      }
+
+      function Plot(id) {
+        this.id = id;
+        this.block = document.createElement("span");
+
+        this.tree = null;
+        this.seconds = 1;
+
+        this.setTree = function(tree) {
+          this.seconds = 0;
+          this.tree = tree;
+          this.tree.draw(this.block);
+          player.tangDiem(-this.tree.getPrice());
+        };
+
+        // phát triển cây mỗi 1s
+        this.growing = function() {
+          this.seconds += 1;
+          // nếu thời gian hiện tại của chậu đang nhỏ hơn 10
+          // và thời gian hiện tại chia cho 5 == 1
+          if (this.seconds < 11 && this.seconds % 5 == 0) {
+            this.tree.level += 1;
+            this.tree.draw(this.block);
+          }
+        };
+
+        this.removeTree = function() {
+          this.block.innerHTML = "";
+          this.tree = null;
+        };
+
+        this.thuhoach = function() {
+          if (!this.tree) {
+            alert("O dat khong co cay");
+            return;
+          }
+          if (this.tree.level !== 3) {
+            alert("Cay chua the thu hoach");
+            return;
+          }
+
+          player.tangDiem(
+            this.tree.getPrice() + Math.ceil(this.tree.getPrice() * 0.5)
+          );
+          this.removeTree();
+
+          for (let i = 0; i < 2; i++) {
+            if (!trees[i].canBuy(player.score)) {
+              trees[i].lock();
+            } else {
+              trees[i].unlock();
+            }
+          }
+        };
+
+        // vẽ mảnh đất vào gardens
+        this.draw = function(gardenBlock) {
+          this.block.id = "plot_" + this.id;
+          this.block.classList.add("plot");
+          gardenBlock.appendChild(this.block);
+        };
+      }
+    </script>
+
+    <script>
+      const backgroundSound = new sound("nhacnen.mp3", true);
+      backgroundSound.play();
+
+      const thuhoachSound = new sound("thuhoach.mp3", false);
+
+      const echSound = new sound("chonconech.mp3", true);
+
+      const chonCaySound = new sound("choncay.mp3", false);
+
+      let currentSelectedTree = -1;
+      let currentSelectedPlot = -1;
+      const gardenBlock = document.getElementById("gardenBlock");
+      const treePanel = document.getElementById("treePanel");
+
+      let plots = [];
+      let trees = [];
+
+      const plantButton = document.getElementById("plant");
+      plantButton.addEventListener("mouseover", function() {
+        echSound.play();
+      });
+      plantButton.addEventListener("mouseout", function() {
+        echSound.stop();
+      });
+      // thêm event click vào nút trồng cây
+      plantButton.addEventListener("click", function() {
+        if (currentSelectedPlot === -1 || currentSelectedTree === -1) {
+          alert("Bạn phải chọn cây và khu đất cần trồng.");
+        } else {
+          // nếu người chơi đã chọn cây và chọn mảnh đất cần trồng
+          // thì set cây mới với cây đang chọn với level = 1 cho chậu đang chọn
+          const newTree = new Tree(currentSelectedTree, 1);
+          if (newTree.canBuy(player.score)) {
+            plots[currentSelectedPlot].setTree(newTree);
+          } else {
+            alert("Ban chua the mua cay nay");
+          }
+
+          // reset
+          currentSelectedPlot = -1;
+          // reset các mảnh dất đã chọn
+          if (document.querySelector("#gardenBlock .active") !== null) {
+            document
+              .querySelector("#gardenBlock .active")
+              .classList.remove("active");
+          }
+          // currentSelectedTree = -1;
+          // // reset các cây đã chọn
+          // if (document.querySelector("#treePanel .active") !== null) {
+          //   document
+          //     .querySelector("#treePanel .active")
+          //     .classList.remove("active");
+          // }
+        }
+      });
+
+      for (let i = 0; i < 25; i++) {
+        plots[i] = new Plot(i);
+        plots[i].draw(gardenBlock);
+
+        // thêm event click vào mỗi mảnh đất
+        plots[i].block.addEventListener("click", function() {
+          // reset các mảnh dất đã chọn
+          if (document.querySelector("#gardenBlock .active") !== null) {
+            document
+              .querySelector("#gardenBlock .active")
+              .classList.remove("active");
+          }
+          // thêm class active vào mảnh đất vừa chọn
+          plots[i].block.classList.add("active");
+
+          currentSelectedPlot = i;
+        });
+      }
+
+      // Vẽ cây panel
+      for (let i = 0; i < 5; i++) {
+        trees[i] = new Tree(i, 1);
+        trees[i].draw(treePanel);
+        if (!trees[i].canBuy(player.score)) {
+          trees[i].lock();
+        }
+
+        // thêm event click vào mỗi cái cây trong panel
+        trees[i].block.addEventListener("click", function() {
+          chonCaySound.play();
+
+          // reset các cây đã chọn
+          if (document.querySelector("#treePanel .active") !== null) {
+            document
+              .querySelector("#treePanel .active")
+              .classList.remove("active");
+          }
+          // thêm class active vào cây vừa chọn
+          trees[i].block.classList.add("active");
+
+          currentSelectedTree = i;
+        });
+      }
+
+      /**
+       * Chạy hàm growing sau mỗi 1s
+       */
+      setInterval(function() {
+        for (let i = 0; i < 25; i++) {
+          if (plots[i].tree !== null) {
+            plots[i].growing();
+          }
+        }
+
+        for (let i = 0; i < 5; i++) {
+          if (!trees[i].canBuy(player.score)) {
+            trees[i].lock();
+          } else {
+            trees[i].unlock();
+          }
+        }
+      }, 1000);
+
+      document.getElementById("thuhoach").addEventListener("click", function() {
+        if (currentSelectedPlot !== -1) {
+          thuhoachSound.play();
+
+          plots[currentSelectedPlot].thuhoach();
+
+          // reset
+          currentSelectedPlot = -1;
+          // reset các mảnh dất đã chọn
+          if (document.querySelector("#gardenBlock .active") !== null) {
+            document
+              .querySelector("#gardenBlock .active")
+              .classList.remove("active");
+          }
+          currentSelectedTree = -1;
+          // reset các cây đã chọn
+          if (document.querySelector("#treePanel .active") !== null) {
+            document
+              .querySelector("#treePanel .active")
+              .classList.remove("active");
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

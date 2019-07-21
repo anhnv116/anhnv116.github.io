@@ -1,0 +1,198 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css" />
+    <title>Free Garden</title>
+  </head>
+  <body>
+    <div>
+      <canvas id="land"> </canvas>
+      <div class="right-block">
+        <div id="scoreBoard"></div>
+        <!-- tool -->
+        <div id="tool">
+          <div>
+            <button id="water">Tuoi nuoc</button>
+          </div>
+          <div>
+            <button id="Thu hoach">Thu Hoach</button>
+          </div>
+          <div>
+            <button id="Xeng">Xeng</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- tree store -->
+      <div id="treeStore">
+        <!-- <div>
+          <img src="images/1.3.png" alt="" />
+        </div>
+        <div>
+          <img src="images/2.3.png" alt="" />
+        </div>
+        <div>
+          <img src="images/3.3.png" alt="" />
+        </div> -->
+      </div>
+    </div>
+    <script>
+      // load image vào ctx
+      function loadImage(ctx, x, y, width, height, src) {
+        const img = new Image();
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0, img.width, img.height, x, y, width, height);
+        };
+        img.src = src;
+      }
+
+      // kiểm tra xem con trỏ chuột có bấm vào hình chữ nhật có tọa độ (x, y, width, height) hay không ?
+      function isCollision(rectX, rectY, rectW, rectH, x, y) {
+        const left = rectX,
+          right = rectX + rectW;
+        const top = rectY,
+          bottom = rectY + rectH;
+        if (right >= x && left <= x && bottom >= y && top <= y) {
+          return true;
+        }
+        return false;
+      }
+      //chèn script
+    </script>
+    <script src="js/pot.js"></script>
+    <script src="js/tree.js"></script>
+    <script>
+      const c = document.getElementById("land");
+      const ctx = c.getContext("2d");
+      const WIDTH = c.offsetWidth;
+      const HEIGHT = c.offsetHeight;
+      // khoi tao ban khi chưa chọn chậu và cây
+      let currentSelectTree = -1;
+      let currentSelectPot = -1;
+
+      const N_POTS = 16;
+
+      const POT_WIDTH = 150;
+      const POT_HEIGHT = HEIGHT / 2;
+
+      let pots = [];
+      // Khởi tạo chậu cây rỗng (không có cây)
+      for (let i = 0; i < N_POTS; i++) {
+        pots.push(
+          new Pot(
+            POT_WIDTH * (i % 8) + 15 * ((i % 8) + 1),
+            Math.floor(i / 8) * POT_HEIGHT,
+            POT_WIDTH,
+            POT_HEIGHT
+          )
+        );
+      }
+
+      // resize the canvas to fill browser window dynamically
+      window.addEventListener("resize", resizeCanvas, false);
+
+      /**
+       * Chuyển kích cỡ của khung canvas cho vừa mới màn hình
+       */
+      function resizeCanvas() {
+        c.width = WIDTH;
+        c.height = HEIGHT;
+
+        /**
+         * Tất cả hàm vẽ sẽ thực hiện trong này
+         */
+        drawStuff();
+      }
+      resizeCanvas();
+
+      function drawStuff() {
+        // draw in here
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        for (let i = 0; i < N_POTS; i++) {
+          pots[i].draw(ctx);
+        }
+      }
+      // reset lại cây
+      function resetSelectedTree() {
+        for (let i = 0; i < N_TREE_STORE; i++) {
+          document.getElementById("tree_" + i).style.border = "1px solid black";
+        }
+      }
+      //load ảnh thanh chọn loại cây
+      let treeStore = [];
+      const N_TREE_STORE = 3;
+      for (let i = 0; i < N_TREE_STORE; i++) {
+        treeStore.push(new Tree(i + 1));
+        const div = document.createElement("div");
+        div.id = "tree_" + i;
+        const img = document.createElement("img");
+        img.src = "./images/" + treeStore[i].type + ".3.png";
+        div.appendChild(img);
+        document.getElementById("treeStore").appendChild(div);
+        // tạo viền khi ấn chọn cây
+        div.addEventListener("click", function() {
+          const id = parseInt(this.id.split("_")[1]);
+          currentSelectTree = id;
+          resetSelectedTree();
+          this.style.border = "2px solid black";
+          setTree();
+        });
+      }
+      //reset lại chậu cây khi chọn
+      function resetSelectedPot() {
+        for (let i = 0; i < N_POTS; i++) {
+          pots[i].selected = false;
+        }
+      }
+      // khi chọn chậu , kiểm tra va chạm và vẽ chậu, vẽ lại viền
+      c.addEventListener("click", function(e) {
+        for (let i = 0; i < N_POTS; i++) {
+          if (
+            isCollision(
+              pots[i].x,
+              pots[i].y,
+              pots[i].w,
+              pots[i].h,
+              e.offsetX,
+              e.offsetY
+            )
+          ) {
+            currentSelectPot = i;
+            resetSelectedPot();
+            pots[i].selected = true;
+            drawStuff();
+            setTree();
+          }
+        }
+      });
+      // chọn cây điều kiện đã chọn cây và chọn chậu ->  confirm.
+      function setTree() {
+        if (currentSelectPot !== -1 && currentSelectTree !== -1) {
+          if (pots[currentSelectPot].tree === null) {
+            const ans = confirm("Are you sure?");
+            if (ans) {
+              pots[currentSelectPot].tree = Object.assign(
+                {},
+                treeStore[currentSelectTree]
+              );
+            }
+          } else {
+            alert("Chau da co cay");
+          }
+          // nếu chậu đã có cây reset lại viền và chọn cây mới.
+          currentSelectPot = -1;
+          currentSelectTree = -1;
+          resetSelectedTree();
+          resetSelectedPot();
+          drawStuff();
+        }
+      }
+      // ấn vào nút water sẽ kích hoạt cây lớn nhưng với điều kiện là  phải có cây và có chậu
+      document.getElementById("water").addEventListener("click", function() {
+        if (currentSelectPot !== -1 && pots[currentSelectPot].tree !== null) {
+          pots[currentSelectPot].tree.grow();
+          drawStuff();
+        }
+      });
+    </script>
+  </body>
+</html>
